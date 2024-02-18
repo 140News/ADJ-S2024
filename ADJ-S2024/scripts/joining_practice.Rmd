@@ -1,0 +1,48 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+
+
+Salary data : HerHoopStats
+Team rosters: ESPN
+Downloaded in Jan
+
+```{r}
+library(tidyverse)
+```
+
+
+load the data
+```{r}
+salaries <- read_csv("data/wnba_salaries.csv")
+wnba_teams <-read_csv("data/wnba_teams.csv")
+```
+practice
+```{r}
+anti_join(salaries,wnba_teams, by = c("name" = "player_name"))
+
+anti_join(wnba_teams,salaries, by = c("player_name" = "name"))
+```
+Isabelle Harrison and Lou Lopez Senechal are not matched
+Asia (AD) Durr is also not matched
+
+combine the tables
+```{r}
+full_join(wnba_teams, salaries, by = c("player_name" = "name")) %>% 
+  arrange(desc(contract_amt))
+
+wnba_teams %>% full_join()
+```
+
+
+

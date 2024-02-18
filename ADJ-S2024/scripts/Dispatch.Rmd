@@ -1,0 +1,99 @@
+---
+title: "Columbia Dispatch"
+output: html_notebook
+---
+
+Columbia Police Dispatch
+https://www.como.gov/CMS/911dispatch/police.php
+Downloaded 1/29/2024 8:43 a.m.
+1/1/2019 to 1/29/2024
+
+This is what we requested, but we actually only got
+1/29/2023 to 1/29/2024
+
+DO NOT DO AGAIN. LIBRARY INSTALLED
+```{r}
+# install.packages("lubridate")
+```
+
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+Load the data
+```{r}
+dispatch<-read_csv("data/como_dispatch.csv")
+```
+83,190 rows
+1 row = 1 call that resulted dispatch
+
+Assessing the data
+```{r}
+dispatch %>% 
+  group_by(CallDateTime, Address) %>% 
+  summarise(n=n()) %>% 
+  filter (n>1)
+
+dispatch %>% 
+  filter(CallDateTime == "10/8/2023 2:08:54 PM")
+
+dispatch %>% 
+  group_by(InNum) %>% 
+  summarise(n = n()) %>% 
+  filter(n>1)
+
+dispatch %>% 
+  count(InNum) %>% 
+  arrange(desc(n))
+  
+dispatch %>% 
+  filter(InNum=="2023029401")
+```
+There are exact duplicates! Call the city
+Possible reason: Multiple officer were dispatched, system enter things twice
+
+Let's say we learned that exact duplicates are mistakes and should be removed:
+```{r}
+dispatch <- dispatch %>% 
+  distinct()
+```
+
+Assess every column:
+```{r}
+dispatch %>% 
+  count(InNum) %>% 
+  arrange(desc(n))
+#Still some duplicates
+
+
+
+```
+
+Create a true date column for CallDateTime
+```{r}
+dispatch %>% 
+  mutate(new_date = mdy_hms(CallDateTime)) %>% 
+  select(CallDateTime, new_date)
+
+dispatch <- dispatch %>% #Overwrite dispatch
+  mutate(new_date = mdy_hms(CallDateTime)) 
+```
+
+What's the date range of our data
+```{r}
+range(dispatch$new_date)
+#Use the $ to turn it into a function
+#[1] "2023-01-29 08:47:18 UTC" "2024-01-29 02:29:40 UTC", however, we requested five-year data but only got 2023-2024
+```
+
+Other ways to work with true dates
+```{r}
+#how many incident happened each year/month?
+dispatch %>% 
+  count(month(new_date)) 
+
+#month(new_date) Pull the month out of each values, then count() will count the month
+
+#nesting:getting information from one to the next. Inword do the first, and next function do the next
+```
+
