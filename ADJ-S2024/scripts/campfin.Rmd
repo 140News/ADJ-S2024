@@ -15,6 +15,7 @@ library(lubridate)
 transactions <- read_csv("data/transactions.csv")
 transactions_types <- read_csv("data/transaction_types.csv")
 candidates <- read_csv("data/candidates.csv")
+committees <- read_csv("data/committees.csv")
 ```
 
 What transactions types are we working with
@@ -40,10 +41,12 @@ transactions %>%
   left_join(transactions_types, by = "transaction_tp") %>% 
   filter(is.na(transaction_tp))
 
+# Check the code and desc matchups
 transactions %>% 
   left_join(transactions_types, by = "transaction_tp") %>% 
   count(transaction_tp, transaction_desc)
 #Exactly 10896 rows. Good sign, now check nulls on the left table 
+#Count only gives you the number of rows. 
 
 #Optional step is to create a new table from the join
 transactions2 <- transactions %>% 
@@ -55,7 +58,7 @@ How much money was spent each transaction type
 transactions %>% 
   left_join(transactions_types, by = "transaction_tp") %>% 
   group_by(transaction_desc) %>% 
-  summarise(total_amt = sum(transaction_amt)) %>% 
+  summarise(total_amt = sum(transaction_amt), n=n()) %>% #n: how many times it appears
   arrange(desc(total_amt))
 
 ```
@@ -66,5 +69,52 @@ transactions %>%
   count(cand_id) %>% 
   arrange(desc(n)) %>% 
   left_join(candidates, by = "cand_id")
+```
+Which candidate had the most money spent on them in independent expenditures?
+```{r}
+transactions %>% 
+  filter(transaction_tp == "24A" | transaction_tp == "24E") %>% 
+  left_join(candidates, by = "cand_id") %>% 
+  group_by(cand_name) %>% 
+  summarise(total_amt = sum(transaction_amt)) %>% 
+  arrange(desc(total_amt))
+```
+```{r}
+#Look at opposing
+transactions %>% 
+  filter(transaction_tp == "24A") %>% 
+  left_join(candidates, by = "cand_id") %>% 
+  group_by(cand_name) %>% 
+  summarise(total_amt = sum(transaction_amt)) %>% 
+  arrange(desc(total_amt))
+
+#Look at advocating
+transactions %>% 
+  filter(transaction_tp == "24E") %>% 
+  left_join(candidates, by = "cand_id") %>% 
+  group_by(cand_name) %>% 
+  summarise(total_amt = sum(transaction_amt)) %>% 
+  arrange(desc(total_amt))
+```
+Can we make it more efficient?
+```{r}
+transactions %>% 
+  filter(transaction_tp %in% c("24A", "24E")) %>% 
+  left_join(candidates, by = "cand_id") %>% 
+  group_by(cand_name, transaction_tp) %>% 
+  summarise(total_amt = sum(transaction_amt)) %>% 
+  pivot_wider(names_from = transaction_tp, values_from = total_amt) %>% #Use it when you want your data longer or wider
+  mutate(total = sum(`24A`,`24E`, na.rm = T), opposing_pct = `24A`/total) %>% 
+  arrange(desc(opposing_pct))
+```
+
+Who are the committees spending this independt expenditure money?
+```{r}
+transactions %>% 
+  filter(transaction_tp %in% c("24A", "24E")) %>% 
+  left_join(committees, by="cmte_id") %>% 
+  group_by(cmte_nm) %>% 
+  summarise(total = sum(transaction_amt)) %>% 
+  arrange(desc(total))
 ```
 
